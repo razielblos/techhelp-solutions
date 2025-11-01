@@ -50,7 +50,7 @@ const Table = () => {
   }, [tickets]);
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
+    let filtered = tickets.filter(ticket => {
       const matchesSearch = searchTerm === '' || 
         Object.values(ticket).some(value => 
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
@@ -63,12 +63,26 @@ const Table = () => {
 
       return matchesSearch && matchesStatus && matchesPrioridade && matchesTecnico && matchesDepartamento;
     });
-  }, [tickets, searchTerm, statusFilter, prioridadeFilter, tecnicoFilter, departamentoFilter]);
+
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        const aValue = a[sortColumn as keyof typeof a];
+        const bValue = b[sortColumn as keyof typeof b];
+        
+        if (aValue === bValue) return 0;
+        
+        const comparison = aValue < bValue ? -1 : 1;
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [tickets, searchTerm, statusFilter, prioridadeFilter, tecnicoFilter, departamentoFilter, sortColumn, sortDirection]);
 
   const paginatedTickets = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredTickets.slice(start, start + itemsPerPage);
-  }, [filteredTickets, currentPage]);
+  }, [filteredTickets, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
@@ -205,64 +219,246 @@ const Table = () => {
               <TableUI>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Abertura</TableHead>
-                    <TableHead>Fechamento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Prioridade</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead>Solicitante</TableHead>
-                    <TableHead>Técnico</TableHead>
-                    <TableHead>Departamento</TableHead>
-                    <TableHead>TMA</TableHead>
-                    <TableHead>FRT</TableHead>
-                    <TableHead>Satisfação</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('id')}
+                    >
+                      <div className="flex items-center gap-2">
+                        ID
+                        {sortColumn === 'id' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('dataAbertura')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Abertura
+                        {sortColumn === 'dataAbertura' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('dataFechamento')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Fechamento
+                        {sortColumn === 'dataFechamento' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Status
+                        {sortColumn === 'status' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('prioridade')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Prioridade
+                        {sortColumn === 'prioridade' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('motivo')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Motivo
+                        {sortColumn === 'motivo' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('solicitante')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Solicitante
+                        {sortColumn === 'solicitante' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('agenteResponsavel')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Técnico
+                        {sortColumn === 'agenteResponsavel' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('departamento')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Departamento
+                        {sortColumn === 'departamento' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('tma')}
+                    >
+                      <div className="flex items-center gap-2">
+                        TMA (min)
+                        {sortColumn === 'tma' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('frt')}
+                    >
+                      <div className="flex items-center gap-2">
+                        FRT (min)
+                        {sortColumn === 'frt' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleSort('satisfacao')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Satisfação
+                        {sortColumn === 'satisfacao' && (
+                          <ArrowUpDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedTickets.map((ticket) => (
                     <TableRow key={ticket.id}>
                       <TableCell className="font-medium">{ticket.id}</TableCell>
-                      <TableCell>{ticket.dataAbertura}</TableCell>
-                      <TableCell>{ticket.dataFechamento}</TableCell>
-                      <TableCell>{ticket.status}</TableCell>
-                      <TableCell>{ticket.prioridade}</TableCell>
+                      <TableCell>{formatDateBR(ticket.dataAbertura)}</TableCell>
+                      <TableCell>{formatDateBR(ticket.dataFechamento)}</TableCell>
+                      <TableCell><StatusBadge status={ticket.status} /></TableCell>
+                      <TableCell><PriorityBadge priority={ticket.prioridade} /></TableCell>
                       <TableCell>{ticket.motivo}</TableCell>
                       <TableCell>{ticket.solicitante}</TableCell>
                       <TableCell>{ticket.agenteResponsavel}</TableCell>
                       <TableCell>{ticket.departamento}</TableCell>
                       <TableCell>{ticket.tma}</TableCell>
                       <TableCell>{ticket.frt}</TableCell>
-                      <TableCell>{ticket.satisfacao}</TableCell>
+                      <TableCell><SatisfactionBadge satisfaction={ticket.satisfacao} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </TableUI>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between p-4 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  Resultados por página:
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                <Select 
+                  value={itemsPerPage.toString()} 
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    setCurrentPage(1);
+                  }}
                 >
-                  Próxima
-                </Button>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15</SelectItem>
+                    <SelectItem value="30">30</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+
+              <span className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredTickets.length)} de {filteredTickets.length} resultados
+              </span>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNumber;
+                      if (totalPages <= 7) {
+                        pageNumber = i + 1;
+                      } else if (currentPage <= 4) {
+                        pageNumber = i < 5 ? i + 1 : i === 5 ? -1 : totalPages;
+                      } else if (currentPage >= totalPages - 3) {
+                        pageNumber = i === 0 ? 1 : i === 1 ? -1 : totalPages - 6 + i;
+                      } else {
+                        if (i === 0) pageNumber = 1;
+                        else if (i === 1) pageNumber = -1;
+                        else if (i === 5) pageNumber = -1;
+                        else if (i === 6) pageNumber = totalPages;
+                        else pageNumber = currentPage - 3 + i;
+                      }
+
+                      if (pageNumber === -1) {
+                        return <span key={`ellipsis-${i}`} className="px-2">...</span>;
+                      }
+
+                      return (
+                        <Button
+                          key={pageNumber}
+                          variant={currentPage === pageNumber ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className="w-9"
+                        >
+                          {pageNumber}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
