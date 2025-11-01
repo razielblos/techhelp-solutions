@@ -48,21 +48,57 @@ export const parseSpreadsheet = async (file: File): Promise<Ticket[]> => {
           return;
         }
 
-        const tickets: Ticket[] = jsonData.map((row: any) => ({
-          id: String(row['ID do Chamado']),
-          dataAbertura: row['Data de Abertura'],
-          dataFechamento: row['Data de Fechamento'],
-          status: row['Status'],
-          prioridade: row['Prioridade'],
-          motivo: row['Motivo'],
-          solucao: row['Solução'],
-          solicitante: row['Solicitante'],
-          agenteResponsavel: row['Agente Responsável'],
-          departamento: row['Departamento'],
-          tma: Number(row['TMA (minutos)']),
-          frt: Number(row['FRT (minutos)']),
-          satisfacao: String(row['Satisfação do Cliente']) // Agora é string (categoria)
-        }));
+        const tickets: Ticket[] = jsonData.map((row: any) => {
+          // Helper function to convert Excel dates to string format
+          const formatExcelDate = (value: any): string => {
+            if (!value) return '';
+            
+            // If it's already a string, return it
+            if (typeof value === 'string') return value;
+            
+            // If it's a Date object, format it
+            if (value instanceof Date) {
+              const year = value.getFullYear();
+              const month = String(value.getMonth() + 1).padStart(2, '0');
+              const day = String(value.getDate()).padStart(2, '0');
+              const hours = String(value.getHours()).padStart(2, '0');
+              const minutes = String(value.getMinutes()).padStart(2, '0');
+              const seconds = String(value.getSeconds()).padStart(2, '0');
+              return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            }
+            
+            // If it's an Excel serial number (number between 1 and 60000)
+            if (typeof value === 'number' && value > 1 && value < 60000) {
+              const date = XLSX.SSF.parse_date_code(value);
+              const year = date.y;
+              const month = String(date.m).padStart(2, '0');
+              const day = String(date.d).padStart(2, '0');
+              const hours = String(date.H || 0).padStart(2, '0');
+              const minutes = String(date.M || 0).padStart(2, '0');
+              const seconds = String(date.S || 0).padStart(2, '0');
+              return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            }
+            
+            // Fallback: convert to string
+            return String(value);
+          };
+
+          return {
+            id: String(row['ID do Chamado']),
+            dataAbertura: formatExcelDate(row['Data de Abertura']),
+            dataFechamento: formatExcelDate(row['Data de Fechamento']),
+            status: row['Status'],
+            prioridade: row['Prioridade'],
+            motivo: row['Motivo'],
+            solucao: row['Solução'],
+            solicitante: row['Solicitante'],
+            agenteResponsavel: row['Agente Responsável'],
+            departamento: row['Departamento'],
+            tma: Number(row['TMA (minutos)']),
+            frt: Number(row['FRT (minutos)']),
+            satisfacao: String(row['Satisfação do Cliente'])
+          };
+        });
 
         resolve(tickets);
       } catch (error) {
