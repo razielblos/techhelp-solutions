@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { DataProvider } from "./contexts/DataContext";
+import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Upload from "./pages/Upload";
 import Dashboard from "./pages/Dashboard";
@@ -26,8 +27,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/login" />} />
             <Route
               path="/upload"
               element={

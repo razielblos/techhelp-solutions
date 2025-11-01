@@ -9,7 +9,7 @@ const satisfactionColors: Record<string, string> = {
 export const SatisfactionBadge = ({ satisfaction }: { satisfaction: string }) => {
   const colorClass = satisfactionColors[satisfaction.toLowerCase()] || 'bg-gray-100 text-gray-800';
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${colorClass}`}>
       {satisfaction}
     </span>
   );

@@ -9,7 +9,7 @@ const statusColors: Record<string, string> = {
 export const StatusBadge = ({ status }: { status: string }) => {
   const colorClass = statusColors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${colorClass}`}>
       {status}
     </span>
   );

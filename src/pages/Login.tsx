@@ -51,8 +51,8 @@ const Login = () => {
         </div>
 
         <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Bem-vindo de volta</CardTitle>
+          <CardHeader className="text-center">
+            <CardTitle>Seja bem-vindo</CardTitle>
             <CardDescription>Entre com suas credenciais para acessar o dashboard</CardDescription>
           </CardHeader>
           <CardContent>

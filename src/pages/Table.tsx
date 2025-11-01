@@ -22,6 +22,7 @@ const Table = () => {
   const [prioridadeFilter, setPrioridadeFilter] = useState('all');
   const [tecnicoFilter, setTecnicoFilter] = useState('all');
   const [departamentoFilter, setDepartamentoFilter] = useState('all');
+  const [satisfacaoFilter, setSatisfacaoFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -49,6 +50,10 @@ const Table = () => {
     return Array.from(new Set(tickets.map(t => t.departamento)));
   }, [tickets]);
 
+  const satisfacaoOptions = useMemo(() => {
+    return Array.from(new Set(tickets.map(t => t.satisfacao)));
+  }, [tickets]);
+
   const filteredTickets = useMemo(() => {
     let filtered = tickets.filter(ticket => {
       const matchesSearch = searchTerm === '' || 
@@ -60,8 +65,9 @@ const Table = () => {
       const matchesPrioridade = prioridadeFilter === 'all' || ticket.prioridade === prioridadeFilter;
       const matchesTecnico = tecnicoFilter === 'all' || ticket.agenteResponsavel === tecnicoFilter;
       const matchesDepartamento = departamentoFilter === 'all' || ticket.departamento === departamentoFilter;
+      const matchesSatisfacao = satisfacaoFilter === 'all' || ticket.satisfacao === satisfacaoFilter;
 
-      return matchesSearch && matchesStatus && matchesPrioridade && matchesTecnico && matchesDepartamento;
+      return matchesSearch && matchesStatus && matchesPrioridade && matchesTecnico && matchesDepartamento && matchesSatisfacao;
     });
 
     if (sortColumn) {
@@ -77,7 +83,7 @@ const Table = () => {
     }
 
     return filtered;
-  }, [tickets, searchTerm, statusFilter, prioridadeFilter, tecnicoFilter, departamentoFilter, sortColumn, sortDirection]);
+  }, [tickets, searchTerm, statusFilter, prioridadeFilter, tecnicoFilter, departamentoFilter, satisfacaoFilter, sortColumn, sortDirection]);
 
   const paginatedTickets = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -101,6 +107,7 @@ const Table = () => {
     setPrioridadeFilter('all');
     setTecnicoFilter('all');
     setDepartamentoFilter('all');
+    setSatisfacaoFilter('all');
     setSortColumn(null);
     setSortDirection('asc');
     setCurrentPage(1);
@@ -122,7 +129,7 @@ const Table = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8 max-w-[1600px] mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Tabela Completa</h1>
           <p className="text-muted-foreground">
@@ -151,7 +158,7 @@ const Table = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -206,6 +213,18 @@ const Table = () => {
                   <SelectItem value="all">Todos os Departamentos</SelectItem>
                   {departamentoOptions.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={satisfacaoFilter} onValueChange={setSatisfacaoFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Satisfação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Satisfações</SelectItem>
+                  {satisfacaoOptions.map(satisfacao => (
+                    <SelectItem key={satisfacao} value={satisfacao}>{satisfacao}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

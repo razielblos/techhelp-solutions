@@ -176,6 +176,7 @@ const Dashboard = () => {
         position: 'right' as const,
         align: 'start' as const,
         labels: {
+          color: 'hsl(var(--foreground))',
           generateLabels: (chart: any) => {
             const data = chart.data;
             return data.labels.map((label: string, i: number) => ({
