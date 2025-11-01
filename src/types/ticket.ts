@@ -11,14 +11,24 @@ export interface Ticket {
   departamento: string;
   tma: number;
   frt: number;
-  satisfacao: number;
+  satisfacao: string; // Categoria: Ruim, Regular, Médio, Bom, Excelente
 }
 
 export interface DashboardStats {
   totalChamados: number;
+  chamadosAbertos: number;
+  chamadosEncerrados: number;
   tempoMedioResolucao: number;
-  satisfacaoMedia: number;
+  satisfacaoDistribuicao: {
+    Ruim: number;
+    Regular: number;
+    Médio: number;
+    Bom: number;
+    Excelente: number;
+  };
   tecnicoMaisProdutivo: string;
+  chamadosTecnicoTop: number;
+  prioridadeAltaUrgente: number;
   taxaResolucao: number;
   mediaTMA: number;
   mediaFRT: number;

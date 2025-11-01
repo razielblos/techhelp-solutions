@@ -61,7 +61,7 @@ export const parseSpreadsheet = async (file: File): Promise<Ticket[]> => {
           departamento: row['Departamento'],
           tma: Number(row['TMA (minutos)']),
           frt: Number(row['FRT (minutos)']),
-          satisfacao: Number(row['Satisfação do Cliente'])
+          satisfacao: String(row['Satisfação do Cliente']) // Agora é string (categoria)
         }));
 
         resolve(tickets);
@@ -77,26 +77,52 @@ export const parseSpreadsheet = async (file: File): Promise<Ticket[]> => {
 
 export const calculateStats = (tickets: Ticket[]): DashboardStats => {
   const totalChamados = tickets.length;
+  const chamadosAbertos = tickets.filter(t => t.status.toLowerCase() === 'aberto' || t.status.toLowerCase() === 'em andamento' || t.status.toLowerCase() === 'pendente').length;
   const chamadosEncerrados = tickets.filter(t => t.status.toLowerCase() === 'encerrado' || t.status.toLowerCase() === 'fechado').length;
   
   const tempoMedioResolucao = tickets.reduce((sum, t) => sum + t.tma, 0) / totalChamados;
-  const satisfacaoMedia = tickets.reduce((sum, t) => sum + t.satisfacao, 0) / totalChamados;
   const mediaTMA = tickets.reduce((sum, t) => sum + t.tma, 0) / totalChamados;
   const mediaFRT = tickets.reduce((sum, t) => sum + t.frt, 0) / totalChamados;
+  
+  // Contagem de satisfação por categoria
+  const satisfacaoDistribuicao = {
+    Ruim: 0,
+    Regular: 0,
+    Médio: 0,
+    Bom: 0,
+    Excelente: 0
+  };
+  
+  tickets.forEach(t => {
+    const sat = String(t.satisfacao);
+    if (sat in satisfacaoDistribuicao) {
+      satisfacaoDistribuicao[sat as keyof typeof satisfacaoDistribuicao]++;
+    }
+  });
+  
+  // Contagem de prioridade Alta/Urgente
+  const prioridadeAltaUrgente = tickets.filter(t => 
+    t.prioridade.toLowerCase() === 'alta' || t.prioridade.toLowerCase() === 'urgente'
+  ).length;
   
   const tecnicosChamados: { [key: string]: number } = {};
   tickets.forEach(t => {
     tecnicosChamados[t.agenteResponsavel] = (tecnicosChamados[t.agenteResponsavel] || 0) + 1;
   });
   
-  const tecnicoMaisProdutivo = Object.entries(tecnicosChamados).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+  const [tecnicoMaisProdutivo, chamadosTecnicoTop] = Object.entries(tecnicosChamados)
+    .sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
   const taxaResolucao = (chamadosEncerrados / totalChamados) * 100;
 
   return {
     totalChamados,
+    chamadosAbertos,
+    chamadosEncerrados,
     tempoMedioResolucao: Math.round(tempoMedioResolucao),
-    satisfacaoMedia: Math.round(satisfacaoMedia * 10) / 10,
+    satisfacaoDistribuicao,
     tecnicoMaisProdutivo,
+    chamadosTecnicoTop,
+    prioridadeAltaUrgente,
     taxaResolucao: Math.round(taxaResolucao * 10) / 10,
     mediaTMA: Math.round(mediaTMA),
     mediaFRT: Math.round(mediaFRT)
@@ -116,7 +142,22 @@ export const getChartData = (tickets: Ticket[]): ChartData => {
     chamadosPorDepartamento[ticket.departamento] = (chamadosPorDepartamento[ticket.departamento] || 0) + 1;
   });
 
-  const evolucaoMensal: { mes: string; total: number }[] = [];
+  // Evolução mensal
+  const evolucaoMensalMap: { [key: string]: number } = {};
+  tickets.forEach(ticket => {
+    const [datePart] = ticket.dataAbertura.split(' ');
+    const [year, month] = datePart.split('-');
+    const mesAno = `${year}-${month}`;
+    evolucaoMensalMap[mesAno] = (evolucaoMensalMap[mesAno] || 0) + 1;
+  });
+
+  const evolucaoMensal = Object.entries(evolucaoMensalMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([mesAno, total]) => {
+      const [year, month] = mesAno.split('-');
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      return { mes: `${monthNames[parseInt(month) - 1]}/${year}`, total };
+    });
 
   return {
     chamadosPorTecnico,

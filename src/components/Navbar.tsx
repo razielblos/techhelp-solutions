@@ -1,12 +1,17 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Table, Upload } from 'lucide-react';
+import { LogOut, LayoutDashboard, Table, Upload, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const { tickets } = useData();
+  const { theme, toggleTheme } = useTheme();
+  const hasData = tickets.length > 0;
 
   const handleLogout = () => {
     logout();
@@ -38,6 +43,12 @@ const Navbar = () => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
+                
+                // Ocultar Dashboard e Tabela se não houver dados
+                if ((item.path === '/dashboard' || item.path === '/table') && !hasData) {
+                  return null;
+                }
+                
                 return (
                   <Button
                     key={item.path}
@@ -54,7 +65,16 @@ const Navbar = () => {
             </div>
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="gap-2"
+              title={theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             <Button
               variant="outline"
               size="sm"

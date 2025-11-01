@@ -4,9 +4,10 @@ import { useData } from '@/contexts/DataContext';
 import { calculateStats, getChartData } from '@/utils/ticketProcessor';
 import Navbar from '@/components/Navbar';
 import StatsCard from '@/components/dashboard/StatsCard';
+import SatisfactionChart from '@/components/dashboard/SatisfactionChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, Users, Clock, Star, TrendingUp, Activity } from 'lucide-react';
-import { Bar, Pie } from 'react-chartjs-2';
+import { BarChart3, Users, Clock, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+import { Bar, Pie, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,6 +17,9 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  PointElement,
+  LineElement,
+  Filler,
 } from 'chart.js';
 
 ChartJS.register(
@@ -25,7 +29,10 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  PointElement,
+  LineElement,
+  Filler
 );
 
 const Dashboard = () => {
@@ -52,11 +59,13 @@ const Dashboard = () => {
     return null;
   }
 
-  const tecnicosLabels = Object.keys(chartData.chamadosPorTecnico);
-  const tecnicosData = Object.values(chartData.chamadosPorTecnico);
-
-  const motivosLabels = Object.keys(chartData.chamadosPorMotivo);
-  const motivosData = Object.values(chartData.chamadosPorMotivo);
+  // Preparar dados para gráfico de técnicos - Top 10, ordenado decrescente
+  const tecnicosEntries = Object.entries(chartData.chamadosPorTecnico)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  
+  const tecnicosLabels = tecnicosEntries.map(([name]) => name);
+  const tecnicosData = tecnicosEntries.map(([, count]) => count);
 
   const barChartData = {
     labels: tecnicosLabels,
@@ -70,29 +79,156 @@ const Dashboard = () => {
     ],
   };
 
+  // Descrição automática do gráfico de técnicos
+  const tecnicoDescricao = tecnicosEntries.length > 0
+    ? `${tecnicosEntries[0][0]} lidera com ${tecnicosEntries[0][1]} chamados resolvidos${
+        tecnicosEntries.length > 1 ? `, seguido por ${tecnicosEntries[1][0]} com ${tecnicosEntries[1][1]}.` : '.'
+      }`
+    : '';
+
+  // Preparar dados para gráfico de pizza - paleta monocromática azul
+  const motivosEntries = Object.entries(chartData.chamadosPorMotivo);
+  const motivosLabels = motivosEntries.map(([name]) => name);
+  const motivosData = motivosEntries.map(([, count]) => count);
+
+  // Gerar paleta monocromática de azuis
+  const generateBluesPalette = (count: number) => {
+    const baseHue = 214;
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+      const lightness = 30 + (i * (60 / count)); // De mais escuro para mais claro
+      colors.push(`hsl(${baseHue}, 85%, ${lightness}%)`);
+    }
+    return colors;
+  };
+
   const pieChartData = {
     labels: motivosLabels,
     datasets: [
       {
         data: motivosData,
-        backgroundColor: [
-          'hsl(214, 95%, 36%)',
-          'hsl(214, 85%, 50%)',
-          'hsl(142, 71%, 45%)',
-          'hsl(38, 92%, 50%)',
-          'hsl(0, 84%, 60%)',
-          'hsl(280, 70%, 50%)',
-        ],
+        backgroundColor: generateBluesPalette(motivosLabels.length),
+        borderWidth: 2,
+        borderColor: 'hsl(var(--card))',
       },
     ],
   };
+
+  // Descrição automática do gráfico de pizza
+  const motivoTop = motivosEntries.length > 0 ? motivosEntries.sort((a, b) => b[1] - a[1])[0] : null;
+  const motivoDescricao = motivoTop
+    ? `${motivoTop[0]} é o motivo mais comum (${motivoTop[1]} ocorrências), representando ${Math.round((motivoTop[1] / stats.totalChamados) * 100)}% dos chamados.`
+    : '';
+
+  // Gráfico de evolução mensal
+  const evolucaoLabels = chartData.evolucaoMensal.map(d => d.mes);
+  const evolucaoData = chartData.evolucaoMensal.map(d => d.total);
+
+  const evolucaoChartData = {
+    labels: evolucaoLabels,
+    datasets: [
+      {
+        label: 'Chamados',
+        data: evolucaoData,
+        borderColor: 'hsl(214, 85%, 50%)',
+        backgroundColor: (context: any) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+          gradient.addColorStop(0, 'hsla(214, 85%, 50%, 0.3)');
+          gradient.addColorStop(1, 'hsla(214, 85%, 50%, 0.05)');
+          return gradient;
+        },
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: 'hsl(214, 85%, 50%)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
+  // Descrição da evolução
+  const maxMes = evolucaoData.length > 0 ? Math.max(...evolucaoData) : 0;
+  const maxMesIndex = evolucaoData.indexOf(maxMes);
+  const mediaMensal = evolucaoData.length > 0 
+    ? Math.round(evolucaoData.reduce((a, b) => a + b, 0) / evolucaoData.length)
+    : 0;
+  const evolucaoDescricao = maxMes > 0
+    ? `Pico de chamados em ${evolucaoLabels[maxMesIndex]} (${maxMes}), com média mensal de ${mediaMensal} chamados.`
+    : '';
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'bottom' as const,
+        display: false,
+      },
+    },
+  };
+
+  const pieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        align: 'start' as const,
+        labels: {
+          generateLabels: (chart: any) => {
+            const data = chart.data;
+            return data.labels.map((label: string, i: number) => ({
+              text: `${label} (${data.datasets[0].data[i]})`,
+              fillStyle: data.datasets[0].backgroundColor[i],
+              hidden: false,
+              index: i,
+            }));
+          },
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
+      },
+      datalabels: {
+        display: true,
+        color: '#fff',
+        font: {
+          weight: 'bold' as const,
+          size: 12,
+        },
+        formatter: (value: number) => value,
+      },
+    },
+  };
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'hsl(var(--border))',
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
       },
     },
   };
@@ -115,29 +251,50 @@ const Dashboard = () => {
             value={stats.totalChamados}
             icon={BarChart3}
             variant="primary"
+            subtitle={`${stats.chamadosAbertos} abertos | ${stats.chamadosEncerrados} fechados`}
           />
           <StatsCard
             title="Tempo Médio de Resolução"
-            value={`${stats.tempoMedioResolucao} min`}
+            value={`${stats.tempoMedioResolucao} min / ${(stats.tempoMedioResolucao / 60).toFixed(1)}h`}
             icon={Clock}
             variant="warning"
           />
-          <StatsCard
-            title="Satisfação Média"
-            value={stats.satisfacaoMedia}
-            icon={Star}
-            variant="success"
-            subtitle="Escala de 1 a 10"
-          />
+          <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Prioridade Alta/Urgente
+                  </p>
+                  <p className="text-3xl font-bold text-foreground mb-1">
+                    {stats.prioridadeAltaUrgente}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.prioridadeAltaUrgente === 1 
+                      ? 'Requer atenção'
+                      : stats.prioridadeAltaUrgente === 0
+                        ? 'Nenhum urgente'
+                        : 'Requerem atenção'}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-red-500/10 text-red-600">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <StatsCard
             title="Técnico Mais Produtivo"
             value={stats.tecnicoMaisProdutivo}
             icon={Users}
             variant="default"
+            subtitle={`${stats.chamadosTecnicoTop} chamados resolvidos`}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <SatisfactionChart data={stats.satisfacaoDistribuicao} />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -159,23 +316,6 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
-                TMA Médio
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold text-primary mb-2">
-                {stats.mediaTMA} min
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Tempo Médio de Atendimento
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
                 FRT Médio
               </CardTitle>
             </CardHeader>
@@ -190,15 +330,20 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Chamados por Técnico</CardTitle>
+              <CardTitle>Chamados por Técnico (Top 10)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-80 mb-3">
                 <Bar data={barChartData} options={chartOptions} />
               </div>
+              {tecnicoDescricao && (
+                <p className="text-xs text-muted-foreground italic text-center">
+                  {tecnicoDescricao}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -207,12 +352,35 @@ const Dashboard = () => {
               <CardTitle>Distribuição por Motivo</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
-                <Pie data={pieChartData} options={chartOptions} />
+              <div className="h-80 mb-3">
+                <Pie data={pieChartData} options={pieChartOptions} />
               </div>
+              {motivoDescricao && (
+                <p className="text-xs text-muted-foreground italic text-center">
+                  {motivoDescricao}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {chartData.evolucaoMensal.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolução de Chamados por Mês</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 mb-3">
+                <Line data={evolucaoChartData} options={lineChartOptions} />
+              </div>
+              {evolucaoDescricao && (
+                <p className="text-xs text-muted-foreground italic text-center">
+                  {evolucaoDescricao}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

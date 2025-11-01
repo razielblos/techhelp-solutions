@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { parseSpreadsheet } from '@/utils/ticketProcessor';
@@ -28,24 +28,61 @@ const REQUIRED_FIELDS = [
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setTickets } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      validateAndSetFile(files[0]);
+    }
+  };
+
+  const validateAndSetFile = (selectedFile: File) => {
+    const extension = selectedFile.name.split('.').pop()?.toLowerCase();
+    
+    if (extension !== 'xlsx' && extension !== 'csv') {
+      toast({
+        title: "Formato não suportado",
+        description: "Use apenas arquivos .xlsx ou .csv",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo permitido é 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      const extension = selectedFile.name.split('.').pop()?.toLowerCase();
-      if (extension === 'xlsx' || extension === 'csv') {
-        setFile(selectedFile);
-      } else {
-        toast({
-          title: "Formato inválido",
-          description: "Por favor, selecione um arquivo XLSX ou CSV.",
-          variant: "destructive",
-        });
-      }
+      validateAndSetFile(selectedFile);
     }
   };
 
@@ -158,7 +195,19 @@ const Upload = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+            <div 
+              className={`
+                border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300
+                ${isDragging 
+                  ? 'border-primary bg-primary/5 border-solid' 
+                  : 'border-border hover:border-primary'
+                }
+                ${file ? 'bg-success/5 border-success' : ''}
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -169,41 +218,49 @@ const Upload = () => {
               
               <div className="flex flex-col items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UploadIcon className="w-8 h-8 text-primary" />
+                  {isDragging ? (
+                    <FileSpreadsheet className="w-8 h-8 text-primary animate-bounce" />
+                  ) : (
+                    <UploadIcon className="w-8 h-8 text-primary" />
+                  )}
                 </div>
                 
                 {file ? (
                   <Alert className="max-w-md">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-sm">
-                      <strong>{file.name}</strong> selecionado
+                      <strong>{file.name}</strong> ({(file.size / 1024).toFixed(2)} KB)
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <div>
                     <p className="text-lg font-medium text-foreground mb-1">
-                      Clique para selecionar um arquivo
+                      {isDragging ? 'Solte o arquivo aqui' : 'Arraste e solte seu arquivo aqui'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Formatos aceitos: XLSX, CSV
+                      ou clique no botão abaixo para selecionar
                     </p>
                   </div>
                 )}
 
                 <div className="flex gap-3">
+                  {file && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                    >
+                      Remover
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
+                    variant={file ? "default" : "outline"}
+                    onClick={() => file ? handleImport() : fileInputRef.current?.click()}
+                    disabled={loading}
                   >
-                    Selecionar arquivo
-                  </Button>
-                  
-                  <Button
-                    onClick={handleImport}
-                    disabled={!file || loading}
-                    className="gap-2"
-                  >
-                    {loading ? 'Importando...' : 'Importar'}
+                    {loading ? 'Importando...' : file ? 'Importar' : 'Selecionar arquivo'}
                   </Button>
                 </div>
               </div>

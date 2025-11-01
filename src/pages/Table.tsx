@@ -2,13 +2,17 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { exportToCSV, exportToXLSX } from '@/utils/ticketProcessor';
+import { formatDateBR } from '@/utils/dateFormatter';
 import Navbar from '@/components/Navbar';
+import { StatusBadge } from '@/components/table/StatusBadge';
+import { PriorityBadge } from '@/components/table/PriorityBadge';
+import { SatisfactionBadge } from '@/components/table/SatisfactionBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table as TableUI, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Search, X, FileSpreadsheet } from 'lucide-react';
+import { Download, Search, X, FileSpreadsheet, ArrowUpDown } from 'lucide-react';
 
 const Table = () => {
   const { tickets } = useData();
@@ -19,7 +23,9 @@ const Table = () => {
   const [tecnicoFilter, setTecnicoFilter] = useState('all');
   const [departamentoFilter, setDepartamentoFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     if (tickets.length === 0) {
@@ -66,12 +72,23 @@ const Table = () => {
 
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setPrioridadeFilter('all');
     setTecnicoFilter('all');
     setDepartamentoFilter('all');
+    setSortColumn(null);
+    setSortDirection('asc');
     setCurrentPage(1);
   };
 
