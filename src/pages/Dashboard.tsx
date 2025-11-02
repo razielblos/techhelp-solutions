@@ -88,21 +88,22 @@ const Dashboard = () => {
       }`
     : '';
 
-  // Preparar dados para gráfico de pizza - paleta monocromática azul
-  const motivosEntries = Object.entries(chartData.chamadosPorMotivo);
-  const motivosLabels = motivosEntries.map(([name]) => name);
-  const motivosData = motivosEntries.map(([, count]) => count);
-
   // Gerar paleta monocromática de azuis
   const generateBluesPalette = (count: number) => {
     const baseHue = 214;
-    const colors = [];
+    const colors: string[] = [];
+    const steps = Math.max(1, count);
     for (let i = 0; i < count; i++) {
-      const lightness = 30 + (i * (60 / count)); // De mais escuro para mais claro
+      const lightness = 30 + (i * (60 / steps)); // De mais escuro para mais claro
       colors.push(`hsl(${baseHue}, 85%, ${lightness}%)`);
     }
     return colors;
   };
+
+  // Preparar dados para gráfico de pizza - paleta monocromática azul
+  const motivosEntries = Object.entries(chartData.chamadosPorMotivo);
+  const motivosLabels = motivosEntries.map(([name]) => name);
+  const motivosData = motivosEntries.map(([, count]) => count);
 
   const pieChartData = {
     labels: motivosLabels,
@@ -174,27 +175,9 @@ const Dashboard = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+      // disable native legend - we'll render a custom HTML legend for full control
       legend: {
-        position: 'right' as const,
-        align: 'start' as const,
-        labels: {
-          color: theme === 'dark' ? '#a0a0a0' : '#333333',
-          font: {
-            size: 12,
-            family: 'Poppins, sans-serif',
-          },
-          padding: 10,
-          usePointStyle: true,
-          generateLabels: (chart: any) => {
-            const data = chart.data;
-            return data.labels.map((label: string, i: number) => ({
-              text: `${label} (${data.datasets[0].data[i]})`,
-              fillStyle: data.datasets[0].backgroundColor[i],
-              hidden: false,
-              index: i,
-            }));
-          },
-        },
+        display: false,
       },
       tooltip: {
         backgroundColor: theme === 'dark' ? '#2a2a2a' : '#ffffff',
@@ -203,12 +186,12 @@ const Dashboard = () => {
         borderColor: theme === 'dark' ? '#444444' : '#e0e0e0',
         borderWidth: 1,
         callbacks: {
+          // Remove the default title and show "Label: value" in the body.
+          title: function() { return ''; },
           label: function(context: any) {
             const label = context.label || '';
             const value = context.parsed;
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${label}: ${value} (${percentage}%)`;
+            return `${label}: ${value}`;
           }
         }
       },
@@ -366,8 +349,31 @@ const Dashboard = () => {
               <CardTitle>Distribuição por Motivo</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80 mb-3">
-                <Pie data={pieChartData} options={pieChartOptions} />
+              <div className="h-80 mb-3 flex gap-6">
+                <div className="flex-1">
+                  <div className="h-80">
+                    <Pie data={pieChartData} options={pieChartOptions} />
+                  </div>
+                </div>
+                <div className="w-44 overflow-auto">
+                  <ul className="space-y-3">
+                    {pieChartData.labels.map((label: any, i: number) => {
+                      const bg = (pieChartData.datasets as any)[0].backgroundColor[i];
+                      const value = (pieChartData.datasets as any)[0].data[i];
+                      return (
+                        <li key={label} className="flex items-center gap-3">
+                          <span
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ background: bg }}
+                          />
+                          <span className={`${theme === 'dark' ? 'text-foreground' : 'text-muted-foreground'} text-sm`}>
+                            {label} ({value})
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
               {motivoDescricao && (
                 <p className="text-xs text-muted-foreground italic text-center">
