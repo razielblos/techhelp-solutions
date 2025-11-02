@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock, User, AlertCircle, Info } from 'lucide-react';
+import { Lock, User, AlertCircle, Info, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
@@ -16,6 +17,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +42,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4 relative">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 rounded-full"
+      >
+        {theme === 'dark' ? (
+          <Sun className="h-5 w-5" />
+        ) : (
+          <Moon className="h-5 w-5" />
+        )}
+      </Button>
+
       <div className="w-full max-w-md space-y-6">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg">

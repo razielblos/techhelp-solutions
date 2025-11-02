@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { calculateStats, getChartData } from '@/utils/ticketProcessor';
 import Navbar from '@/components/Navbar';
 import StatsCard from '@/components/dashboard/StatsCard';
@@ -38,6 +39,7 @@ ChartJS.register(
 const Dashboard = () => {
   const { tickets } = useData();
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (tickets.length === 0) {
@@ -176,7 +178,13 @@ const Dashboard = () => {
         position: 'right' as const,
         align: 'start' as const,
         labels: {
-          color: 'hsl(var(--foreground))',
+          color: theme === 'dark' ? '#a0a0a0' : '#333333',
+          font: {
+            size: 12,
+            family: 'Poppins, sans-serif',
+          },
+          padding: 10,
+          usePointStyle: true,
           generateLabels: (chart: any) => {
             const data = chart.data;
             return data.labels.map((label: string, i: number) => ({
@@ -189,6 +197,11 @@ const Dashboard = () => {
         },
       },
       tooltip: {
+        backgroundColor: theme === 'dark' ? '#2a2a2a' : '#ffffff',
+        titleColor: theme === 'dark' ? '#e4e4e4' : '#333333',
+        bodyColor: theme === 'dark' ? '#a0a0a0' : '#666666',
+        borderColor: theme === 'dark' ? '#444444' : '#e0e0e0',
+        borderWidth: 1,
         callbacks: {
           label: function(context: any) {
             const label = context.label || '';
